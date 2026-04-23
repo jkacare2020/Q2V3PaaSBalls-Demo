@@ -6,6 +6,10 @@ const routes = [
     path: "/",
     component: () => import("layouts/MainLayout.vue"),
     children: [
+      {
+        path: "expert-persona-demo",
+        component: () => import("pages/PageExpertPersonaDemo.vue"),
+      },
       // ✅ Homepage
       {
         path: "",

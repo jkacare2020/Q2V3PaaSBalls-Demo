@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://localhost:9200", "https://q2v3paasapp.web.app"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -66,8 +66,10 @@ const corsOptions = {
   credentials: true,
 };
 
+const personaRoutes = require("./routes/personaRoutes");
+
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // this is the key fix
+app.options("*", cors(corsOptions));
 
 // Example: Check Firebase connectivity
 admin
@@ -93,6 +95,8 @@ app.use(updatePresence);
 // Increase the payload size limit (e.g., 10MB)
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+app.use("/api/persona", personaRoutes);
 
 // Public routes (no auth)
 app.use("/api/products", postProductRoutes); // Includes public marketplace

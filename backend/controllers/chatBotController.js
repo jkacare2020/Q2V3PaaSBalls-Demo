@@ -1,12 +1,12 @@
 //--This is the chatBotController.js --------
-const { OpenAI } = require("openai");
-const ChatbotLog = require("../models/chatBot/chatbotLog"); // Import ChatbotLog model
-const admin = require("firebase-admin"); // Firebase Admin SDK
+const openai = require("../utils/openaiClient");
+const ChatbotLog = require("../models/chatBot/chatbotLog");
+const admin = require("firebase-admin");
 
 // Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in environment variables
-});
+//const openai = new OpenAI({
+// apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in environment variables
+//});
 
 console.log("GPT API Key:", process.env.OPENAI_API_KEY);
 

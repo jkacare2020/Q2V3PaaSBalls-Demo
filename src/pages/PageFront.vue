@@ -91,7 +91,7 @@
         color="secondary"
         label="Upload New Photo"
         icon="photo_camera"
-        @click="$router.push('/camera')"
+        @click="showCameraChoice = true"
       />
     </div>
 
@@ -99,32 +99,67 @@
       © 2025 IsmeHr – Your trusted AI assistant for leather restoration
     </div>
   </q-page>
+  <q-dialog v-model="showCameraChoice" persistent>
+    <q-card class="q-pa-md" style="min-width: 280px">
+      <q-card-section class="text-h6">Select Upload Type</q-card-section>
+      <q-separator />
+      <q-card-section>
+        <q-btn
+          label="📸 Single Photo Capture"
+          icon="photo_camera"
+          class="q-mb-sm full-width"
+          color="primary"
+          @click="goToCamera('single')"
+        />
+        <q-btn
+          label="🗂️ Batch Photo Capture"
+          icon="collections"
+          class="full-width"
+          color="secondary"
+          @click="goToCamera('batch')"
+        />
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          label="Cancel"
+          color="grey"
+          @click="showCameraChoice = false"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+
 export default {
   name: "PageFront",
+  setup() {
+    const showCameraChoice = ref(false);
+    const router = useRouter();
+
+    function goToCamera(type) {
+      showCameraChoice.value = false;
+      if (type === "single") {
+        router.push("/camera");
+      } else if (type === "batch") {
+        router.push("/camera/batch");
+      }
+    }
+
+    return {
+      showCameraChoice,
+      goToCamera,
+    };
+  },
   meta() {
     return {
       title: "IsmeHr | AI Cleaning & Leather Restoration Assistant",
       meta: [
-        {
-          name: "description",
-          content:
-            "Upload before-and-after cleaning photos and get an AI-generated grade using our AI-4 Vision. Suggest products, manage clients, and export PDF reports.",
-        },
-        { name: "robots", content: "index, follow" },
-        { property: "og:title", content: "IsmeHr | AI Leather Care Assistant" },
-        {
-          property: "og:description",
-          content:
-            "Let AI analyze handbag images, recommend care products, and generate client reports.",
-        },
-        {
-          property: "og:image",
-          content: "https://ismehr.com/icons/apple-touch-icon.png",
-        },
-        { property: "og:url", content: "https://ismehr.com" },
+        /*...*/
       ],
     };
   },

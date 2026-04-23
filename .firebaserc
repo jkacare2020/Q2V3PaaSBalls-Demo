@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "q2v3paasapp"
-  }
+  },
+  "targets": {
+    "q2v3paasapp": {
+      "hosting": {
+        "demo": [
+          "ismehr-demo"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
