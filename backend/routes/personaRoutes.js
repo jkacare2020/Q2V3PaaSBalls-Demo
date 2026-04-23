@@ -1,6 +1,8 @@
+//personaRoutes.js
 const express = require("express");
 const router = express.Router();
 const openai = require("../utils/openaiClient");
+const Persona = require("../models/Persona/personaModel");
 
 router.post("/generate", async (req, res) => {
   try {
@@ -99,7 +101,7 @@ ${transcript}
 
     let persona = JSON.parse(text);
 
-    // 🔥 强制补全 tradeoff
+    // 强制补全 tradeoff
     if (
       !persona.tradeoff ||
       !persona.tradeoff.flavor ||
@@ -135,7 +137,30 @@ ${transcript}
       };
     }
 
-    return res.json(persona);
+    // 强制补全 coachingPrinciples
+    if (
+      !Array.isArray(persona.coachingPrinciples) ||
+      !persona.coachingPrinciples.length
+    ) {
+      persona.coachingPrinciples = [
+        "Prioritize mouthfeel before rushing the dish.",
+        "Use cooking time to improve texture, not just doneness.",
+        "Choose ingredients that support the texture you want.",
+      ];
+    }
+
+    const savedPersona = await Persona.create({
+      userId: req.user?.uid || null,
+      ...persona,
+      sourceType: "transcript",
+      sourceTranscript: transcript,
+    });
+
+    return res.json({
+      ...persona,
+      _id: savedPersona._id,
+      createdAt: savedPersona.createdAt,
+    });
   } catch (error) {
     console.error("persona generate route error:", error);
     return res.status(500).json({
