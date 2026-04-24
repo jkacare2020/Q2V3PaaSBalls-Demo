@@ -1,4 +1,74 @@
 <template>
+  <q-dialog v-model="showDialog">
+    <q-card style="min-width: 420px; max-width: 700px">
+      <q-card-section>
+        <div class="text-h6">{{ selectedPersona?.name }}</div>
+        <div class="text-caption text-grey-7">
+          {{ selectedPersona?.philosophy }}
+        </div>
+      </q-card-section>
+
+      <q-separator />
+
+      <q-card-section>
+        <div class="q-mb-sm">
+          <b>Priority:</b>
+          {{ selectedPersona?.priorityOrder?.join(" → ") }}
+        </div>
+
+        <div class="q-mb-sm">
+          <b>Signature:</b>
+          {{ selectedPersona?.signatureStyle }}
+        </div>
+
+        <div class="q-mb-sm">
+          <b>Tradeoff:</b>
+          Flavor {{ selectedPersona?.tradeoff?.flavor }}, Speed
+          {{ selectedPersona?.tradeoff?.speed }}, Cost
+          {{ selectedPersona?.tradeoff?.cost }}
+        </div>
+
+        <div class="q-mb-sm">
+          <b>Decision Logic:</b>
+          <div
+            v-for="(step, i) in selectedPersona?.decisionLogic || []"
+            :key="'d-' + i"
+          >
+            {{ i + 1 }}. {{ step }}
+          </div>
+        </div>
+
+        <div class="q-mb-sm">
+          <b>Common Mistakes:</b>
+          <div
+            v-for="(m, i) in selectedPersona?.commonMistakes || []"
+            :key="'m-' + i"
+          >
+            • {{ m }}
+          </div>
+        </div>
+
+        <div class="q-mb-sm">
+          <b>Coaching Principles:</b>
+          <div
+            v-for="(c, i) in selectedPersona?.coachingPrinciples || []"
+            :key="'c-' + i"
+          >
+            • {{ c }}
+          </div>
+        </div>
+
+        <div class="q-mt-md text-caption text-grey-7">
+          Source: {{ selectedPersona?.sourceTranscript }}
+        </div>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Close" color="primary" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
   <q-page class="bg-grey-1">
     <div class="q-pa-lg q-pa-xl-md" style="max-width: 1400px; margin: 0 auto">
       <!-- Hero -->
@@ -173,6 +243,42 @@
             </div>
           </q-card>
         </q-card>
+
+        <div class="q-mt-md">
+          <div
+            v-for="p in personaList"
+            :key="p._id"
+            class="q-pa-sm q-mb-sm bg-grey-2"
+          >
+            <div class="row items-center justify-between">
+              <div>
+                <div class="text-subtitle1">{{ p.name }}</div>
+                <div class="text-caption text-grey-7">{{ p.philosophy }}</div>
+                <div class="text-body2">
+                  {{ p.priorityOrder?.join(" → ") }}
+                </div>
+              </div>
+
+              <div class="row items-center q-gutter-sm">
+                <q-btn
+                  flat
+                  dense
+                  color="primary"
+                  label="View"
+                  @click="viewPersona(p)"
+                />
+
+                <q-btn
+                  flat
+                  dense
+                  color="negative"
+                  label="Delete"
+                  @click="deletePersona(p._id)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="text-h5 q-mt-md text-grey-9 text-weight-medium">
           Capture senior expertise once, deploy everywhere
@@ -510,6 +616,9 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { apiNode } from "src/boot/apiNode";
+import { useQuasar } from "quasar";
+
+const $q = useQuasar();
 
 const demoInput = ref({
   ingredients: "chicken thigh, potato, onion, cream",
@@ -983,12 +1092,77 @@ async function generatePersona() {
     console.log("✅ Response received:", data);
 
     generatedPersona.value = data;
+
+    // 🔥 加在这里（关键）
+    if (data.duplicate) {
+      console.log("⚠️ Similar persona already exists");
+
+      $q.notify({
+        type: "warning",
+        message: data.message || "Similar persona already exists",
+      });
+    } else {
+      $q.notify({
+        type: "positive",
+        message: "New persona created",
+      });
+    }
+
+    // 🔥 刷新列表（你很关键的一步）
+    await loadPersonas();
   } catch (err) {
     console.error("❌ generate persona failed:", err);
   } finally {
     isGeneratingPersona.value = false;
   }
 }
+
+const personaList = ref([]);
+
+async function loadPersonas() {
+  const { data } = await apiNode.get("/api/persona");
+  personaList.value = data;
+}
+
+onMounted(() => {
+  loadPersonas();
+});
+
+const selectedPersona = ref(null);
+const showDialog = ref(false);
+
+function viewPersona(persona) {
+  selectedPersona.value = persona;
+  showDialog.value = true;
+}
+
+// async function deletePersona(id) {
+//   try {
+//     await apiNode.delete(`/api/persona/${id}`);
+//     await loadPersonas(); // 🔥 删除后刷新列表
+//   } catch (err) {
+//     console.error("Delete failed:", err);
+//   }
+// }
+
+import { Dialog } from "quasar";
+
+function deletePersona(id) {
+  Dialog.create({
+    title: "Confirm",
+    message: "Delete this persona?",
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await apiNode.delete(`/api/persona/${id}`);
+      await loadPersonas(); // 🔥 删除后刷新
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  });
+}
+
 runDemo();
 </script>
 

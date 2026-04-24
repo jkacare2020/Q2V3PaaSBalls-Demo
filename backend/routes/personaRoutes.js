@@ -149,17 +149,35 @@ ${transcript}
       ];
     }
 
+    // ✅ 生成 personaKey：只用核心身份，不用会变化的细节字段
+    const personaKey = (persona.signatureStyle || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // ✅ 先查重
+    const existingPersona = await Persona.findOne({ personaKey });
+
+    if (existingPersona) {
+      return res.json({
+        ...existingPersona.toObject(),
+        duplicate: true,
+        message: "Similar persona already exists",
+      });
+    }
+
+    // ✅ 没有重复，才保存
     const savedPersona = await Persona.create({
       userId: req.user?.uid || null,
       ...persona,
+      personaKey,
       sourceType: "transcript",
       sourceTranscript: transcript,
     });
 
     return res.json({
-      ...persona,
-      _id: savedPersona._id,
-      createdAt: savedPersona.createdAt,
+      ...savedPersona.toObject(),
+      duplicate: false,
     });
   } catch (error) {
     console.error("persona generate route error:", error);
@@ -167,6 +185,31 @@ ${transcript}
       error: "Failed to generate persona",
       details: error.message,
     });
+  }
+});
+
+// 👉 获取所有 persona（列表）
+router.get("/", async (req, res) => {
+  try {
+    const personas = await Persona.find().sort({ createdAt: -1 });
+
+    res.json(personas);
+  } catch (err) {
+    console.error("get personas error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await Persona.findByIdAndDelete(id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("delete persona error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -50,6 +50,11 @@ const PersonaSchema = new mongoose.Schema(
       default: [],
     },
 
+    personaKey: {
+      type: String,
+      index: true,
+    },
+
     sourceType: {
       type: String,
       default: "transcript",
