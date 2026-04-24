@@ -1,3 +1,4 @@
+// videosController.js
 const admin = require("firebase-admin");
 const dbFirestore = admin.firestore(); // Firestore instance
 
@@ -31,7 +32,7 @@ exports.getVideos = async (req, res) => {
   } catch (error) {
     console.error(
       "Error fetching Firestore videos. Ensure Firestore composite index is created:",
-      error
+      error,
     );
     res.status(500).send("Error fetching videos");
   }
@@ -100,11 +101,11 @@ exports.togglePostVisibility = async (req, res) => {
 
     if (makePublic) {
       updatedTags = Array.from(new Set([...tags, "public"])).filter(
-        (t) => t !== "private"
+        (t) => t !== "private",
       );
     } else {
       updatedTags = Array.from(new Set([...tags, "private"])).filter(
-        (t) => t !== "public"
+        (t) => t !== "public",
       );
     }
 

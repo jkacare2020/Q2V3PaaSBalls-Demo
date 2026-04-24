@@ -1,5 +1,4 @@
 // backend/server.js
-
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -33,6 +32,8 @@ const invitationRoutes = require("./routes/invitationRoutes");
 
 const tryLogRoutes = require("./routes/tryLogRoutes");
 // const adminRoutes = require("./routes/adminRoutes");
+
+const videoAnalysisRoutes = require("./routes/videoAnalysisRoutes");
 
 dotenv.config();
 
@@ -105,7 +106,10 @@ app.use("/api/products", postProductRoutes); // Includes public marketplace
 app.use("/api/try-log", tryLogRoutes);
 
 // 🔐 Global Firebase Auth Middleware (protect everything below)
+//const videoAnalysisRoutes = require("./routes/videoAnalysisRoutes");
+app.use("/api/video-analysis", videoAnalysisRoutes);
 app.use("/api", authenticateAndAuthorize());
+//app.use("/api/video-analysis", videoAnalysisRoutes);
 // 🛠 Protected routes (must be placed AFTER the auth middleware)
 // Mount Routes
 app.use("/api", userRoutes); // Mount user routes under /api
