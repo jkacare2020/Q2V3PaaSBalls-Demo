@@ -1,3 +1,4 @@
+// backend/routes/videoAnalysisRoutes.js
 const express = require("express");
 const router = express.Router();
 const admin = require("firebase-admin");
@@ -34,7 +35,9 @@ router.post("/from-video/:videoId", async (req, res) => {
       });
     }
 
-    const existing = await VideoAnalysis.findOne({ videoId, userId });
+    const { expertId, expertName } = req.body;
+
+    const existing = await VideoAnalysis.findOne({ videoId, userId, expertId });
 
     if (existing) {
       return res.json({
@@ -47,6 +50,8 @@ router.post("/from-video/:videoId", async (req, res) => {
     const analysis = await VideoAnalysis.create({
       userId,
       videoId,
+      expertId,
+      expertName,
       videoUrl: video.videoUrl || video.url || "",
       caption: video.caption || "",
       title: video.title || video.caption || "Untitled video",
@@ -54,7 +59,6 @@ router.post("/from-video/:videoId", async (req, res) => {
       sourceType: "firestore-video",
       analysisStatus: "pending",
     });
-
     return res.json({
       ...analysis.toObject(),
       duplicate: false,
@@ -108,6 +112,68 @@ router.get("/", async (req, res) => {
     res.json(analyses);
   } catch (err) {
     console.error("get video analyses error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/expert/:expertId/observed-persona", async (req, res) => {
+  try {
+    const { expertId } = req.params;
+
+    const videos = await VideoAnalysis.find({
+      expertId,
+      analysisStatus: "analyzed",
+    });
+
+    if (!videos.length) {
+      return res.json({ message: "No analyzed videos found" });
+    }
+
+    let totalHeat = 0;
+    let totalSpeed = 0;
+    let totalComplexity = 0;
+
+    const techniqueCount = {};
+
+    videos.forEach((v) => {
+      const s = v.extractedSignals || {};
+
+      totalHeat += s.heatLevel || 0;
+      totalSpeed += s.speed || 0;
+      totalComplexity += s.complexity || 0;
+
+      const tech = s.technique || "unknown";
+      techniqueCount[tech] = (techniqueCount[tech] || 0) + 1;
+    });
+
+    const count = videos.length;
+
+    // 找 dominant technique
+    let dominantTechnique = "";
+    let max = 0;
+    for (const t in techniqueCount) {
+      if (techniqueCount[t] > max) {
+        dominantTechnique = t;
+        max = techniqueCount[t];
+      }
+    }
+
+    const result = {
+      expertId,
+      expertName: videos[0].expertName,
+      videoCount: count,
+      observedStyle: {
+        averageHeat: totalHeat / count,
+        averageSpeed: totalSpeed / count,
+        averageComplexity: totalComplexity / count,
+        dominantTechnique,
+      },
+      summary: `This chef tends to cook with ${dominantTechnique}, high heat and fast speed.`,
+    };
+
+    res.json(result);
+  } catch (err) {
+    console.error("observed persona error:", err);
     res.status(500).json({ error: err.message });
   }
 });

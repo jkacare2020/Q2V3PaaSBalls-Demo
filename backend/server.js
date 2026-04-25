@@ -33,6 +33,8 @@ const invitationRoutes = require("./routes/invitationRoutes");
 const tryLogRoutes = require("./routes/tryLogRoutes");
 // const adminRoutes = require("./routes/adminRoutes");
 
+const expertRoutes = require("./routes/expertRoutes");
+
 const videoAnalysisRoutes = require("./routes/videoAnalysisRoutes");
 
 dotenv.config();
@@ -105,6 +107,7 @@ app.use("/api/products", postProductRoutes); // Includes public marketplace
 // ✅ Allow public logging before auth
 app.use("/api/try-log", tryLogRoutes);
 
+app.use("/api/expert", expertRoutes);
 // 🔐 Global Firebase Auth Middleware (protect everything below)
 //const videoAnalysisRoutes = require("./routes/videoAnalysisRoutes");
 app.use("/api/video-analysis", videoAnalysisRoutes);

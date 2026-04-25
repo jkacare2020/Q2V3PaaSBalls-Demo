@@ -3,6 +3,10 @@
     <q-card style="min-width: 420px; max-width: 700px">
       <q-card-section>
         <div class="text-h6">{{ selectedPersona?.name }}</div>
+        <!-- 👇 加这一行 -->
+        <div class="text-caption text-primary text-weight-medium">
+          👤 {{ selectedPersona?.expertName || "Unassigned" }}
+        </div>
         <div class="text-caption text-grey-7">
           {{ selectedPersona?.philosophy }}
         </div>
@@ -61,6 +65,30 @@
         <div class="q-mt-md text-caption text-grey-7">
           Source: {{ selectedPersona?.sourceTranscript }}
         </div>
+
+        <div class="q-mt-md">
+          <!-- 输入框 -->
+          <q-input
+            v-model="question"
+            label="Ask Jason Chef..."
+            outlined
+            dense
+          />
+
+          <!-- 按钮 -->
+          <q-btn
+            class="q-mt-sm"
+            label="Ask"
+            color="primary"
+            @click="askExpertFromPersona"
+          />
+
+          <!-- 回答 -->
+          <div v-if="answer" class="q-mt-md">
+            <div class="text-caption text-grey-6">Answer</div>
+            <div class="text-body2">{{ answer }}</div>
+          </div>
+        </div>
       </q-card-section>
 
       <q-card-actions align="right">
@@ -96,7 +124,13 @@
               {{ question }}
             </div>
           </div>
+          <q-select
+            v-model="selectedExpert"
+            :options="expertOptions"
+            option-label="expertName"
+          />
 
+          <q-btn label="+ New Expert" @click="showExpertDialog = true" />
           <q-input
             v-model="transcript"
             type="textarea"
@@ -253,6 +287,9 @@
             <div class="row items-center justify-between">
               <div>
                 <div class="text-subtitle1">{{ p.name }}</div>
+                <div class="text-caption text-primary">
+                  Expert: {{ p.expertName || "Unassigned" }}
+                </div>
                 <div class="text-caption text-grey-7">{{ p.philosophy }}</div>
                 <div class="text-body2">
                   {{ p.priorityOrder?.join(" → ") }}
@@ -611,12 +648,30 @@
       </q-card>
     </div>
   </q-page>
+
+  <q-dialog v-model="showExpertDialog">
+    <q-card class="q-pa-md" style="min-width: 300px">
+      <div class="text-h6 q-mb-md">Create Expert</div>
+
+      <q-input v-model="newExpertName" label="Expert Name" />
+
+      <div class="row q-mt-md justify-end">
+        <q-btn flat label="Cancel" v-close-popup />
+        <q-btn color="primary" label="Create" @click="createExpert" />
+      </div>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { apiNode } from "src/boot/apiNode";
 import { useQuasar } from "quasar";
+import { useStoreAuth } from "stores/storeAuth";
+
+const storeAuth = useStoreAuth();
+
+const userId = computed(() => storeAuth.user?.uid);
 
 const $q = useQuasar();
 
@@ -626,6 +681,9 @@ const demoInput = ref({
   people: "4",
   goal: "premium dinner",
 });
+
+const question = ref("");
+const answer = ref("");
 
 let recognitionActive = false;
 
@@ -849,6 +907,41 @@ const scenarios = {
     ],
   },
 };
+
+const selectedExpert = ref(null);
+const expertOptions = ref([]);
+
+const showExpertDialog = ref(false);
+const newExpertName = ref("");
+
+async function loadExperts() {
+  if (!userId.value) return;
+
+  const { data } = await apiNode.get(`/api/expert/${userId.value}`);
+  expertOptions.value = data;
+
+  // 👇 补这一段
+  if (!selectedExpert.value && data.length) {
+    selectedExpert.value = data[0];
+  }
+}
+async function createExpert() {
+  if (!newExpertName.value || !userId.value) return;
+
+  const payload = {
+    userId: userId.value,
+    expertId: `chef_${Date.now()}`,
+    expertName: newExpertName.value,
+  };
+
+  const { data } = await apiNode.post("/api/expert", payload);
+
+  expertOptions.value.unshift(data);
+  selectedExpert.value = data;
+
+  newExpertName.value = "";
+  showExpertDialog.value = false;
+}
 
 function loadScenario(type) {
   const scenario = scenarios[type];
@@ -1087,6 +1180,8 @@ async function generatePersona() {
   try {
     const { data } = await apiNode.post("/api/persona/generate", {
       transcript: transcript.value,
+      expertId: selectedExpert.value?.expertId,
+      expertName: selectedExpert.value?.expertName,
     });
 
     console.log("✅ Response received:", data);
@@ -1128,6 +1223,16 @@ onMounted(() => {
   loadPersonas();
 });
 
+onMounted(() => {
+  loadExperts();
+});
+
+onMounted(() => {
+  if (userId.value) {
+    loadExperts();
+  }
+});
+
 const selectedPersona = ref(null);
 const showDialog = ref(false);
 
@@ -1161,6 +1266,17 @@ function deletePersona(id) {
       console.error("Delete failed:", err);
     }
   });
+}
+
+async function askExpertFromPersona() {
+  if (!selectedPersona.value?.expertId || !question.value.trim()) return;
+
+  const { data } = await apiNode.post("/api/persona/ask", {
+    expertId: selectedPersona.value.expertId,
+    question: question.value,
+  });
+
+  answer.value = data.answer;
 }
 
 runDemo();

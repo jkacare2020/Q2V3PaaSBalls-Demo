@@ -4,6 +4,9 @@ const PersonaSchema = new mongoose.Schema(
   {
     userId: { type: String, required: false },
 
+    expertId: { type: String, index: true, default: "" },
+    expertName: { type: String, default: "" },
+
     name: { type: String, required: true },
     philosophy: { type: String, required: true },
 

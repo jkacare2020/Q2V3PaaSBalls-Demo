@@ -7,6 +7,11 @@ const VideoAnalysisSchema = new mongoose.Schema(
     // Firestore videos doc id
     videoId: { type: String, required: true, index: true },
 
+    expertId: { type: String, index: true, default: "" },
+    expertName: { type: String, default: "" },
+
+    dishName: { type: String, default: "" },
+
     videoUrl: { type: String, required: true },
     caption: { type: String, default: "" },
     title: { type: String, default: "" },

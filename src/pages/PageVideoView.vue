@@ -4,6 +4,7 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-sm-8">
         <!-- 🔍 Search Input -->
+
         <q-input
           v-model="searchQuery"
           label="Search posts"
@@ -13,6 +14,40 @@
           class="q-mb-md"
           clearable
         />
+
+        <q-select
+          v-model="selectedExpert"
+          :options="expertOptions"
+          option-label="expertName"
+          label="Select Expert"
+          dense
+          outlined
+          class="q-mb-md"
+        />
+        <!-- 👇 AI 结果展示区（放这里） -->
+        <q-card v-if="expertStyle" class="q-mb-md bg-grey-1">
+          <q-card-section>
+            <div class="text-h6">👨‍🍳 Expert Style</div>
+
+            <div class="text-caption">
+              Videos analyzed: {{ expertStyle.videoCount }}
+            </div>
+
+            <div class="q-mt-sm">
+              🔥 Heat: {{ expertStyle.observedStyle.averageHeat }} | ⚡ Speed:
+              {{ expertStyle.observedStyle.averageSpeed }} | 🧠 Complexity:
+              {{ expertStyle.observedStyle.averageComplexity }}
+            </div>
+
+            <div>
+              🍳 Technique: {{ expertStyle.observedStyle.dominantTechnique }}
+            </div>
+
+            <div class="q-mt-sm text-primary">
+              {{ expertStyle.summary }}
+            </div>
+          </q-card-section>
+        </q-card>
         <q-scroll-area style="height: calc(100vh - 100px)">
           <template v-if="!loadingVideos && videos.length">
             <q-card
@@ -133,6 +168,20 @@
                     "
                     :disable="video.userId !== storeAuth.user?.uid"
                   />
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    label="Add to Expert"
+                    @click="addVideoToExpert(video)"
+                  />
+                  <q-btn
+                    flat
+                    dense
+                    color="secondary"
+                    label="View Style"
+                    @click="viewExpertStyle()"
+                  />
                 </q-card-actions>
               </q-card-section>
             </q-card>
@@ -180,7 +229,7 @@
 
       <!-- RIGHT: Presence + Comment input -->
       <div class="col-4 large-screen-only">
-        <q-badge color="primary" align="top right">
+        <q-badge color="primary" floating>
           Comments: {{ commentCount }}
         </q-badge>
 
@@ -253,7 +302,7 @@
                         size="sm"
                         @click="
                           $router.push(
-                            `/replies/${comment.postId}/${comment.replyTo}`
+                            `/replies/${comment.postId}/${comment.replyTo}`,
                           )
                         "
                       />
@@ -418,7 +467,7 @@
               <q-toolbar class="bg-grey-2 text-primary">
                 <q-toolbar-title>
                   💬 Comments
-                  <q-badge color="primary" align="top right">
+                  <q-badge color="primary" floating>
                     {{ commentCount }}
                   </q-badge></q-toolbar-title
                 >
@@ -460,7 +509,7 @@
                         size="sm"
                         @click="
                           $router.push(
-                            `/replies/${comment.postId}/${comment.replyTo}`
+                            `/replies/${comment.postId}/${comment.replyTo}`,
                           )
                         "
                       />
@@ -643,8 +692,102 @@ const serviceWorkerSupported = computed(() => "serviceWorker" in navigator);
 const pushNotificationsSupported = computed(() => "PushManager" in window);
 
 const topLevelComments = computed(() =>
-  comments.value.filter((c) => !c.replyTo)
+  comments.value.filter((c) => !c.replyTo),
 );
+
+const selectedExpert = ref(null);
+const expertOptions = ref([]);
+
+watch(
+  () => storeAuth.user,
+  (user) => {
+    if (user) {
+      loadExperts();
+    }
+  },
+  { immediate: true },
+);
+
+const expertStyle = ref(null);
+
+async function viewExpertStyle() {
+  if (!selectedExpert.value) {
+    $q.notify({ type: "warning", message: "Select an expert first." });
+    return;
+  }
+
+  try {
+    const { data } = await apiNode.get(
+      `/api/video-analysis/expert/${selectedExpert.value.expertId}/observed-persona`,
+    );
+
+    expertStyle.value = data;
+
+    console.log("🎯 Expert Style:", data);
+  } catch (err) {
+    console.error(err);
+    $q.notify({ type: "negative", message: "Failed to load style." });
+  }
+}
+
+async function loadExperts() {
+  const uid = storeAuth.user?.uid;
+  if (!uid) return;
+
+  const { data } = await apiNode.get(`/api/expert/${uid}`);
+  expertOptions.value = data;
+
+  if (!selectedExpert.value && data.length) {
+    selectedExpert.value = data[0];
+  }
+}
+
+async function addVideoToExpert(video) {
+  if (!selectedExpert.value) {
+    $q.notify({ type: "warning", message: "Please select an expert first." });
+    return;
+  }
+
+  try {
+    const res = await apiNode.post(
+      `/api/video-analysis/from-video/${video.id}`,
+      {
+        expertId: selectedExpert.value.expertId,
+        expertName: selectedExpert.value.expertName,
+      },
+    );
+
+    const analysisId = res.data._id;
+
+    await apiNode.put(`/api/video-analysis/${analysisId}/mock-analyze`, {
+      transcript: video.caption || "No transcript yet.",
+      processSteps: [
+        "observe video",
+        "extract cooking style",
+        "link to expert",
+      ],
+      extractedSignals: {
+        heatLevel: 7,
+        speed: 6,
+        complexity: 5,
+        technique: "stir-fry",
+      },
+      consistencyScore: 0.85,
+      linkedPersonaId: null,
+    });
+
+    $q.notify({
+      type: "positive",
+      message: "Video added and analyzed.",
+    });
+  } catch (err) {
+    console.error("Add/analyze video failed:", err);
+    $q.notify({
+      type: "negative",
+      message: "Failed to add/analyze video.",
+    });
+  }
+}
 
 //---------------------Modal open ---------------
 function openActionSheet() {
@@ -837,7 +980,7 @@ function fetchComments(videoId = "global") {
           if (!comment.avatarUrl || comment.avatarUrl === "") {
             try {
               const avatarSnap = await getDocs(
-                collection(db, `users/${comment.userId}/avatar`)
+                collection(db, `users/${comment.userId}/avatar`),
               );
               if (!avatarSnap.empty) {
                 comment.avatarUrl =
@@ -847,7 +990,7 @@ function fetchComments(videoId = "global") {
               console.warn(`Could not fetch avatar for ${comment.userId}`);
             }
           }
-        })
+        }),
       );
 
       comments.value = parsed.sort((a, b) => b.timestamp - a.timestamp);
@@ -865,27 +1008,18 @@ function fetchComments(videoId = "global") {
     });
   });
 }
-
 onMounted(() => {
-  getVideos();
-});
-
-onMounted(() => {
-  if (auth.currentUser) {
-    initPresenceTracking();
-  }
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      console.log("👤 Auth state changed:", user.uid);
-      fetchUserData(user.uid);
-      getVideos();
-      fetchComments(); // ✅ called from here
-      initPresenceTracking(); // 👈 make sure it's called here too
-    }
-  });
-  if (auth.currentUser) {
+    if (!user) return;
+
+    console.log("👤 Auth state changed:", user.uid);
+
+    fetchUserData(user.uid);
     getVideos();
-  }
+    loadExperts();
+    fetchComments();
+    initPresenceTracking();
+  });
 });
 
 // Watch for storeAuth.user to be ready
@@ -899,7 +1033,7 @@ watch(
       fetchPresence();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 //---------------------user Data------------------------------
 async function fetchUserData(uid) {
@@ -944,7 +1078,7 @@ async function fetchPresence() {
         let avatarUrl = "";
         try {
           const avatarSnap = await getDocs(
-            collection(db, `users/${userId}/avatar`)
+            collection(db, `users/${userId}/avatar`),
           );
           if (!avatarSnap.empty) {
             avatarUrl = avatarSnap.docs[0].data().imageUrl;
@@ -961,7 +1095,7 @@ async function fetchPresence() {
           avatarUrl: avatarUrl,
           online: presence.online === true,
         };
-      })
+      }),
     );
 
     allUserMap.value = newUserMap;
@@ -1004,7 +1138,7 @@ async function sendComment() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     $q.notify({ type: "positive", message: "Comment posted ✅" });
     resetCommentBox(); // 👈 Clears videoId, replyTo, and input
@@ -1050,7 +1184,7 @@ async function submitEditedComment(commentId) {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     $q.notify({ type: "positive", message: "✏️ Comment updated" });
@@ -1077,7 +1211,7 @@ async function toggleCommentOffline(comment) {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   // Optional instant UI update
@@ -1098,7 +1232,7 @@ async function updateVisibility(videoId, visibility) {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     // 🔄 Update the video in local array
     const index = videos.value.findIndex((p) => p.id === videoId);
@@ -1199,7 +1333,7 @@ const filteredVideos = computed(() =>
       video.location?.toLowerCase().includes(query) ||
       niceDate(video.date).toLowerCase().includes(query)
     );
-  })
+  }),
 );
 
 //-----------------------------------------------

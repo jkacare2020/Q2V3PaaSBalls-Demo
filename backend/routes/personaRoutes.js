@@ -3,10 +3,11 @@ const express = require("express");
 const router = express.Router();
 const openai = require("../utils/openaiClient");
 const Persona = require("../models/Persona/personaModel");
+const VideoAnalysis = require("../models/VideoAnalysis/videoAnalysisModel");
 
 router.post("/generate", async (req, res) => {
   try {
-    const { transcript } = req.body || {};
+    const { transcript, expertId, expertName } = req.body || {};
 
     if (!transcript || !transcript.trim()) {
       return res.status(400).json({ error: "Transcript is required" });
@@ -170,6 +171,8 @@ ${transcript}
     const savedPersona = await Persona.create({
       userId: req.user?.uid || null,
       ...persona,
+      expertId: expertId || "",
+      expertName: expertName || "",
       personaKey,
       sourceType: "transcript",
       sourceTranscript: transcript,
@@ -209,6 +212,85 @@ router.delete("/:id", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("delete persona error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// backend/routes/personaRoutes.js
+
+router.post("/ask", async (req, res) => {
+  try {
+    const { expertId, question } = req.body;
+
+    if (!expertId || !question) {
+      return res.status(400).json({ error: "Missing inputs" });
+    }
+
+    // 👉 找这个 expert 的 persona
+    const persona = await Persona.findOne({ expertId });
+
+    if (!persona) {
+      return res.status(404).json({ error: "Persona not found" });
+    }
+
+    const videos = await VideoAnalysis.find({
+      expertId,
+      analysisStatus: "analyzed",
+    })
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const behaviorSummary = videos
+      .map((v, i) => {
+        const s = v.extractedSignals || {};
+
+        return `
+Example ${i + 1}:
+- Heat Level: ${s.heatLevel ?? "N/A"}
+- Speed: ${s.speed ?? "N/A"}
+- Technique: ${s.technique ?? "N/A"}
+- Steps: ${(v.processSteps || []).join(" → ")}
+`;
+      })
+      .join("\n");
+
+    // 👉 拼 prompt
+    const prompt = `
+You are an expert chef with the following persona:
+
+Philosophy: ${persona.philosophy}
+Priority: ${persona.priorityOrder?.join(" → ")}
+Signature: ${persona.signatureStyle}
+
+Decision Logic:
+${persona.decisionLogic?.map((s, i) => `${i + 1}. ${s}`).join("\n")}
+
+--------------------------------
+
+Observed Behavior from past videos:
+${behaviorSummary}
+
+--------------------------------
+
+Instructions:
+- Use BOTH persona and observed behavior.
+- If there is a conflict, prefer observed behavior.
+- Answer in 3–5 practical steps.
+
+Question: ${question}
+`;
+
+    // 👉 调 OpenAI
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    res.json({
+      answer: completion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
