@@ -8,7 +8,7 @@ const admin = require("firebase-admin");
 // apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in environment variables
 //});
 
-console.log("GPT API Key:", process.env.OPENAI_API_KEY);
+console.log("GPT API Key loaded:", !!process.env.OPENAI_API_KEY);
 
 // ✅ **Declare all functions first before exporting them**
 const sendMessage = async (req, res) => {
