@@ -17,12 +17,15 @@ require("dotenv").config({
 
 module.exports = configure(function () {
   console.log("Current Environment:", process.env.NODE_ENV);
-  console.log(
-    "API URL:",
-    process.env.VITE_API_LOCAL || "http://localhost:3000"
-  );
+  const resolvedApiUrl =
+    process.env.NODE_ENV === "production"
+      ? process.env.VITE_API_BASE_URL
+      : process.env.VITE_API_LOCAL || "http://localhost:3000";
+
+  console.log("Current Environment:", process.env.NODE_ENV);
+  console.log("Resolved Node API URL:", resolvedApiUrl);
   console.log("API Local:", process.env.VITE_API_LOCAL);
-  console.log("API Production:", process.env.VITE_API_PRODUCTION);
+  console.log("API Base URL:", process.env.VITE_API_BASE_URL);
   console.log("🧪 Using FASTAPI_URL:", process.env.VITE_FASTAPI_URL);
 
   return {
@@ -32,23 +35,7 @@ module.exports = configure(function () {
         browser: ["es2019", "edge88", "firefox78", "chrome87", "safari13.1"],
         node: "node20",
       },
-      env: {
-        VITE_API_LOCAL: process.env.VITE_API_LOCAL,
-        VITE_API_PRODUCTION: process.env.VITE_API_PRODUCTION,
-        VITE_API_URL:
-          process.env.NODE_ENV === "production"
-            ? process.env.VITE_API_PRODUCTION || "https://fallback-api.com"
-            : process.env.VITE_API_LOCAL || "http://localhost:3000",
-        VITE_FASTAPI_URL: process.env.VITE_FASTAPI_URL,
-        VUE_APP_FIREBASE_API_KEY: process.env.VUE_APP_FIREBASE_API_KEY,
-        VUE_APP_FIREBASE_AUTH_DOMAIN: process.env.VUE_APP_FIREBASE_AUTH_DOMAIN,
-        VUE_APP_FIREBASE_PROJECT_ID: process.env.VUE_APP_FIREBASE_PROJECT_ID,
-        VUE_APP_FIREBASE_STORAGE_BUCKET:
-          process.env.VUE_APP_FIREBASE_STORAGE_BUCKET,
-        VUE_APP_FIREBASE_MESSAGING_SENDER_ID:
-          process.env.VUE_APP_FIREBASE_MESSAGING_SENDER_ID,
-        VUE_APP_FIREBASE_APP_ID: process.env.VUE_APP_FIREBASE_APP_ID,
-      },
+
       extendWebpack(cfg) {
         cfg.resolve.alias = {
           ...cfg.resolve.alias,
@@ -93,21 +80,12 @@ module.exports = configure(function () {
           "@": path.resolve(__dirname, "./src"),
         };
       },
-
       env: {
-        // Node.js (Express) API endpoints
         VITE_API_LOCAL: process.env.VITE_API_LOCAL,
-        VITE_API_PRODUCTION: process.env.VITE_API_PRODUCTION,
+        VITE_API_BASE_URL: process.env.VITE_API_BASE_URL,
 
-        VITE_API_URL:
-          process.env.NODE_ENV === "production"
-            ? process.env.VITE_API_PRODUCTION || "https://fallback-api.com"
-            : process.env.VITE_API_LOCAL || "http://localhost:3000",
-
-        // FastAPI endpoints
         VITE_FASTAPI_URL: process.env.VITE_FASTAPI_URL,
 
-        // Firebase keys (still use VUE_APP_ because Firebase SDK may expect them
         VUE_APP_FIREBASE_API_KEY: process.env.VUE_APP_FIREBASE_API_KEY,
         VUE_APP_FIREBASE_AUTH_DOMAIN: process.env.VUE_APP_FIREBASE_AUTH_DOMAIN,
         VUE_APP_FIREBASE_PROJECT_ID: process.env.VUE_APP_FIREBASE_PROJECT_ID,

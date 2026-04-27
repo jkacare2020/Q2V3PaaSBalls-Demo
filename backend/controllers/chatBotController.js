@@ -28,16 +28,38 @@ const sendMessage = async (req, res) => {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    const { userMessage, sessionId } = req.body;
+    const { userMessage, sessionId, personaPrompt } = req.body;
+
     if (!userMessage) {
       return res.status(400).json({ error: "User message is required" });
     }
 
-    // Call OpenAI API
+    // ✅ 定义 system prompt
+    const systemPrompt =
+      (personaPrompt || "You are a helpful AI assistant.") +
+      `
+For voice output:
+- Do not use Markdown.
+- Do not use ###, **, bullets, or numbered headings.
+- Speak naturally in short sentences.
+- Keep response under 120 words unless user asks for details.
+`;
+
+    // ✅ temporary: no history yet
+    const historyMessages = [];
+
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: userMessage }],
-      max_tokens: 100,
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        ...historyMessages,
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 180,
+      temperature: 0.7,
     });
 
     const botResponse = response.choices[0]?.message?.content || "No response";

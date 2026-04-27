@@ -1,4 +1,7 @@
 <template>
+  <div style="color: red; font-weight: bold; font-size: 20px">
+    🔥 THIS IS PageChatBotABMode
+  </div>
   <q-page class="q-pa-md">
     <div class="chat-container">
       <!-- Chatbot Section -->
@@ -100,6 +103,13 @@ import { useRouter } from "vue-router";
 import { auth } from "src/firebase/init";
 import { apiNode } from "boot/apiNode"; // Make sure this is imported at the top
 import { nextTick } from "vue";
+import { onMounted } from "vue";
+
+console.log("🔥 TOP LEVEL PageChatBotABMode LOADED");
+
+onMounted(() => {
+  console.log("🔥 PageChatBotABMode mounted");
+});
 
 const router = useRouter();
 const $q = useQuasar();
@@ -161,7 +171,7 @@ const sendMessage = async () => {
     const response = await apiNode.post(
       "/api/chatbot/sendMessage",
       { userMessage: userMessage.value },
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` } },
     );
 
     const botResponse = response.data.botResponse;
@@ -274,7 +284,7 @@ const startVoiceInput = () => {
       const response = await apiNode.post(
         "/api/chatbot/sendMessage",
         { userMessage: transcript },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       const botResponse = response.data.botResponse;
@@ -299,39 +309,6 @@ can **enable Voice Mode**, **toggle Speaker on/off**, and **confirm voice
 input** before sending! 🚀🔥
 
 <style scoped>
-/* .chat-container {
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.chat-display {
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 10px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.user-message {
-  text-align: right;
-  background: #e0f7fa;
-  padding: 8px 12px;
-  border-radius: 16px;
-  margin: 5px 0;
-}
-
-.bot-message {
-  text-align: left;
-  background: #f1f8e9;
-  padding: 8px 12px;
-  border-radius: 16px;
-  margin: 5px 0;
-}
-
 /* Uniform Card Styling */
 .uniform-card {
   max-width: 600px;

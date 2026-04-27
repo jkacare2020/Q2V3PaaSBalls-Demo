@@ -224,7 +224,8 @@ const startTranscription = () => {
   }
 
   const recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
+  // recognition.lang = "en-US";
+  recognition.lang = "zh-CN";
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
 

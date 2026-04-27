@@ -1,3 +1,4 @@
+// F:\My_App\quasar2v3\Q2V3PaaSBalls-Cleaned -Demo\src\pages\PageFront.vue
 <template>
   <q-page class="q-pa-xl column items-center justify-center">
     <!-- Header Branding -->
@@ -75,6 +76,12 @@
 
     <!-- Quick Access -->
     <div class="q-gutter-md row justify-center">
+      <q-btn
+        color="deep-purple"
+        label="Expert Persona Demo"
+        icon="psychology"
+        @click="$router.push('/expert-persona-demo')"
+      />
       <q-btn
         color="primary"
         label="Chat with AI Assistant"

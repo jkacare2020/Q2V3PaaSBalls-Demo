@@ -1,12 +1,20 @@
 {
   "projects": {
-    "default": "q2v3paasapp"
+    "default": "q2v3paasapp",
+    "demo": "q2v3backup"
   },
   "targets": {
     "q2v3paasapp": {
       "hosting": {
         "demo": [
           "ismehr-demo"
+        ]
+      }
+    },
+    "q2v3backup": {
+      "hosting": {
+        "demo": [
+          "q2v3backup"
         ]
       }
     }
