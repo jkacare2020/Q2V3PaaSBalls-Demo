@@ -2,7 +2,7 @@
   "hosting": [
     {
       "target": "demo",
-      "public": "dist/pwa",
+      "public": "dist/spa",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
