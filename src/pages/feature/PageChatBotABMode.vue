@@ -55,6 +55,58 @@
               @click="playBotResponse"
               :class="{ 'pulse-button': shouldPulse }"
             />
+
+            <q-btn
+              label="Stop Speaking"
+              color="negative"
+              icon="stop"
+              @click="stopSpeaking"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- ✅ AI Context / Expert Card -->
+      <q-card class="uniform-card q-mt-md">
+        <q-card-section>
+          <div class="text-h6 text-center text-primary">AI Context</div>
+
+          <div class="q-mt-sm">
+            <strong>Active Expert:</strong>
+            {{ activeExpert?.name || "No expert selected" }}
+          </div>
+          <div class="q-mt-sm">
+            <strong>Active Persona:</strong>
+            {{ activePersona?.name || "No persona selected" }}
+          </div>
+          <div v-if="activeExpert" class="q-mt-md">
+            <q-card bordered flat class="q-pa-md">
+              <div class="text-subtitle1 text-weight-bold">
+                {{ activeExpert.name }}
+              </div>
+
+              <div class="text-grey-7">
+                {{ activeExpert.role }}
+              </div>
+
+              <div class="q-mt-sm">
+                {{ activeExpert.summary }}
+              </div>
+
+              <q-btn
+                flat
+                dense
+                color="primary"
+                class="q-mt-sm"
+                :label="showExpertJson ? 'Hide JSON' : 'Show JSON'"
+                @click="showExpertJson = !showExpertJson"
+              />
+
+              <pre v-if="showExpertJson" class="json-box"
+                >{{ JSON.stringify(activeExpert, null, 2) }}
+        </pre
+              >
+            </q-card>
           </div>
         </q-card-section>
       </q-card>
@@ -122,6 +174,130 @@ const isVoiceMode = ref(false); // 🔄 Voice Mode Toggle
 const isSpeakerEnabled = ref(true); // 🔊 Speaker Toggle
 const latestBotResponse = ref("");
 const shouldPulse = ref(false);
+const activeExpert = ref(null);
+const showExpertJson = ref(false);
+
+const stopSpeaking = () => {
+  window.speechSynthesis.cancel();
+  shouldPulse.value = false;
+};
+
+const demoExperts = [
+  {
+    id: "texture-first-chef",
+    name: "Texture First Chef",
+    role: "Leather Texture Restoration Expert",
+    summary:
+      "Texture First Chef specializes in analyzing leather surface texture, spotting damage patterns, and recommending restoration steps for premium leather bags.",
+    skills: [
+      "Leather texture analysis",
+      "Surface damage detection",
+      "Cleaning workflow recommendation",
+      "Before and after evaluation",
+    ],
+  },
+];
+const activePersona = ref(null); // 🔥 加在上面
+//------------------------------------------------
+const loadChefPersona = async (text = "chef") => {
+  try {
+    const token = await getValidToken();
+
+    const { data } = await apiNode.get("/api/persona", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const lower = text.toLowerCase();
+    const persona = findPersona(data, lower) || findPersona(data, "chef");
+
+    if (persona) {
+      activePersona.value = persona;
+
+      const reply = `Switching to ${persona.name}. ${persona.philosophy}`;
+
+      chatMessages.value.push({
+        role: "bot",
+        text: reply,
+      });
+
+      if (isSpeakerEnabled.value) {
+        convertToSpeech(reply);
+      }
+
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error("loadChefPersona error:", err);
+    return false;
+  }
+};
+
+//--------------------------------------------
+const findExpertFromCommand = async (text) => {
+  const lower = text.toLowerCase();
+
+  // 🟢 0️⃣ Persona（🔥 放最前）
+  if (
+    lower.includes("chef persona") ||
+    lower.includes("chef personal") ||
+    lower.includes("chef personnel") ||
+    lower.includes("use chef") ||
+    lower.includes("chef mode")
+  ) {
+    await loadChefPersona(text);
+    return true;
+  }
+  // 🟢 1️⃣ JSON
+  if (
+    activeExpert.value &&
+    (lower.includes("show json") ||
+      lower.includes("yes") ||
+      lower.includes("show it"))
+  ) {
+    showExpertJson.value = true;
+
+    const reply = "Here is the JSON data.";
+
+    chatMessages.value.push({
+      role: "bot",
+      text: reply,
+    });
+
+    if (isSpeakerEnabled.value) {
+      convertToSpeech(reply);
+    }
+
+    return true;
+  }
+
+  // 🟢 2️⃣ Expert
+  if (
+    lower.includes("texture first chef") ||
+    lower.includes("texture") ||
+    lower.includes("expert")
+  ) {
+    const expert = demoExperts[0];
+    activeExpert.value = expert;
+    showExpertJson.value = false;
+
+    const spokenSummary = `I found ${expert.name}. ${expert.summary} Would you like to see the JSON data?`;
+
+    chatMessages.value.push({
+      role: "bot",
+      text: spokenSummary,
+    });
+
+    if (isSpeakerEnabled.value) {
+      convertToSpeech(spokenSummary);
+    }
+
+    return true;
+  }
+
+  return false;
+};
 
 const handleBotReply = (botText) => {
   latestBotResponse.value = botText;
@@ -158,11 +334,21 @@ const getValidToken = async () => {
   }
 };
 
-// ✅ Send Message (Text or Voice Input)
+/// ✅ Send Message (Text or Voice Input)
 const sendMessage = async () => {
   if (!userMessage.value.trim()) return;
 
-  chatMessages.value.push({ role: "user", text: userMessage.value });
+  const inputText = userMessage.value;
+
+  chatMessages.value.push({ role: "user", text: inputText });
+
+  // ✅ 让 typed text 也可以触发 Persona / Expert / JSON
+  const handled = await findExpertFromCommand(inputText);
+
+  if (handled) {
+    userMessage.value = "";
+    return;
+  }
 
   try {
     const token = await getValidToken();
@@ -170,19 +356,17 @@ const sendMessage = async () => {
 
     const response = await apiNode.post(
       "/api/chatbot/sendMessage",
-      { userMessage: userMessage.value },
+      { userMessage: inputText },
       { headers: { Authorization: `Bearer ${token}` } },
     );
 
     const botResponse = response.data.botResponse;
     chatMessages.value.push({ role: "bot", text: botResponse });
 
-    // Auto-scroll after DOM updates
     await nextTick();
     const el = document.querySelector(".chat-display");
     if (el) el.scrollTop = el.scrollHeight;
 
-    // ✅ Speak response only if Speaker is enabled
     if (isSpeakerEnabled.value) {
       convertToSpeech(botResponse);
       handleBotReply(response.data.botResponse);
@@ -197,6 +381,8 @@ const sendMessage = async () => {
 
 // 🎤 Speech-to-Text (STT)
 const startTranscription = () => {
+  console.log("🎤 StartTranscription clicked");
+
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -214,10 +400,20 @@ const startTranscription = () => {
   };
 
   recognition.onresult = async (event) => {
-    const transcript = event.results[0][0].transcript;
+    const transcript = event.results?.[0]?.[0]?.transcript || "";
+
+    console.log("🎤 StartTranscription heard:", transcript);
+    // alert("STT heard: " + transcript);
+
+    if (!transcript) return;
+
     userMessage.value = transcript;
 
-    sendMessage();
+    const handled = await findExpertFromCommand(transcript);
+
+    if (!handled) {
+      await sendMessage();
+    }
   };
 
   recognition.onerror = (event) => {
@@ -228,16 +424,30 @@ const startTranscription = () => {
   recognition.start();
 };
 
+const isSpeaking = ref(false); // 🔴 新增
+
 // 🔊 Convert GPT Response to Speech
 const convertToSpeech = (text) => {
   if (!text.trim() || !isSpeakerEnabled.value) return;
+
+  window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "en-US";
   utterance.rate = 1;
   utterance.pitch = 1;
 
+  // ✅ 🔥 关键：标记正在说话
+  utterance.onstart = () => {
+    isSpeaking.value = true;
+  };
+
+  utterance.onend = () => {
+    isSpeaking.value = false;
+  };
+
   utterance.onerror = (event) => {
+    isSpeaking.value = false;
     console.error("TTS Error:", event.error);
     $q.notify({ type: "negative", message: "TTS failed." });
   };
@@ -274,32 +484,38 @@ const startVoiceInput = () => {
   recognition.lang = "en-US";
 
   recognition.onresult = async (event) => {
-    const transcript = event.results[0][0].transcript;
-    chatMessages.value.push({ role: "user", text: transcript });
+    const transcript = event.results?.[0]?.[0]?.transcript || "";
 
-    try {
-      const token = await getValidToken();
-      if (!token) throw new Error("No Firebase token available");
+    console.log("🎤 Transcript:", transcript);
 
-      const response = await apiNode.post(
-        "/api/chatbot/sendMessage",
-        { userMessage: transcript },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+    if (!transcript) return;
 
-      const botResponse = response.data.botResponse;
-      chatMessages.value.push({ role: "bot", text: botResponse });
+    userMessage.value = transcript;
 
-      // ✅ Speak response only if Speaker is enabled
-      if (isSpeakerEnabled.value) {
-        convertToSpeech(botResponse);
-      }
-    } catch (error) {
-      console.error("STT Error:", error);
+    const handled = await findExpertFromCommand(transcript);
+
+    if (!handled) {
+      await sendMessage();
     }
   };
 
   recognition.start();
+};
+
+const findPersona = (data, lower) => {
+  let persona = data.find((p) => p.name?.toLowerCase().includes(lower));
+  if (persona) return persona;
+
+  persona = data.find((p) => p.expertName?.toLowerCase().includes(lower));
+  if (persona) return persona;
+
+  persona = data.find((p) => p.signatureStyle?.toLowerCase().includes(lower));
+  if (persona) return persona;
+
+  persona = data.find((p) => p.philosophy?.toLowerCase().includes(lower));
+  if (persona) return persona;
+
+  return null;
 };
 </script>
 
@@ -361,5 +577,15 @@ input** before sending! 🚀🔥
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.json-box {
+  background: #111;
+  color: #00ff99;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-x: auto;
+  margin-top: 10px;
 }
 </style>

@@ -70,7 +70,7 @@
           <!-- 输入框 -->
           <q-input
             v-model="question"
-            label="Ask Jason Chef..."
+            :label="`Ask ${selectedPersona?.expertName || selectedPersona?.name || 'Expert'}...`"
             outlined
             dense
           />
@@ -87,6 +87,38 @@
           <div v-if="answer" class="q-mt-md">
             <div class="text-caption text-grey-6">Answer</div>
             <div class="text-body2">{{ answer }}</div>
+          </div>
+          <q-separator class="q-my-md" />
+
+          <div v-if="activeVideoAnalysis">
+            <div class="text-caption text-grey-6">Video Analysis</div>
+
+            <div class="text-body2 text-weight-medium">
+              {{ activeVideoAnalysis.title }}
+            </div>
+
+            <video
+              v-if="activeVideoAnalysis.videoUrl"
+              :src="activeVideoAnalysis.videoUrl"
+              controls
+              style="width: 100%; margin-top: 8px"
+            />
+
+            <div class="q-mt-sm text-caption text-grey-7">
+              {{ activeVideoAnalysis.caption }}
+            </div>
+
+            <q-expansion-item label="View Analysis Details" dense>
+              <div class="q-pa-sm">
+                <div><b>Transcript:</b></div>
+                <div class="text-body2">
+                  {{ activeVideoAnalysis.transcript }}
+                </div>
+
+                <div class="q-mt-sm"><b>Signals:</b></div>
+                <pre>{{ activeVideoAnalysis.extractedSignals }}</pre>
+              </div>
+            </q-expansion-item>
           </div>
         </div>
       </q-card-section>

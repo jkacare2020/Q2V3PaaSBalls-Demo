@@ -30,6 +30,7 @@ IMPORTANT:
 - If the transcript is short, infer conservatively but still provide realistic and useful values.
 - The tradeoff field must always be filled based on the expert's implied priorities.
 - Prefer concrete, teachable, and realistic wording over abstract business language.
+- If video examples exist, your answer must reflect them clearly.
 
 Return ONLY valid JSON.
 Do NOT use markdown.
@@ -240,23 +241,31 @@ router.post("/ask", async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
-    const behaviorSummary = videos
-      .map((v, i) => {
+    const videoContext = (videos || [])
+      .slice(0, 3)
+      .map(
+        (v, i) => `
+Example ${i + 1}:
+Title: ${v.title || "N/A"}
+Transcript: ${v.transcript || "N/A"}
+Steps: ${(v.processSteps || []).join(" → ") || "N/A"}
+Signals: ${JSON.stringify(v.extractedSignals || {})}
+`,
+      )
+      .join("\n");
+
+    const behaviorSummary = (videos || [])
+      .slice(0, 5)
+      .map((v) => {
         const s = v.extractedSignals || {};
 
-        return `
-Example ${i + 1}:
-- Heat Level: ${s.heatLevel ?? "N/A"}
-- Speed: ${s.speed ?? "N/A"}
-- Technique: ${s.technique ?? "N/A"}
-- Steps: ${(v.processSteps || []).join(" → ")}
-`;
+        return `heat:${s.heatLevel || 0}, speed:${s.speed || 0}, technique:${s.technique || "unknown"}`;
       })
-      .join("\n");
+      .join(" | ");
 
     // 👉 拼 prompt
     const prompt = `
-You are an expert chef with the following persona:
+    You are an expert chef with the following persona:
 
 Philosophy: ${persona.philosophy}
 Priority: ${persona.priorityOrder?.join(" → ")}
@@ -271,11 +280,33 @@ Observed Behavior from past videos:
 ${behaviorSummary}
 
 --------------------------------
+Observed expert behavior from videos:
+${videoContext}
+
+--------------------------------
 
 Instructions:
-- Use BOTH persona and observed behavior.
-- If there is a conflict, prefer observed behavior.
-- Answer in 3–5 practical steps.
+- Speak like a chef giving direct instructions, not a tutorial.
+- Start with action, not explanation.
+- Use observed video behavior as the main guide.
+- Do NOT structure as "Step 1, Step 2".
+- Keep it natural, slightly imperfect, like real speech.
+
+- Integrate example references naturally:
+  e.g. "Start high heat—same way as Example 1."
+
+- Let persona influence HOW you cook (e.g., sweetness, presentation),
+  not just describe it.
+- Keep the answer concise, around 5–8 short sentences.
+- If video examples exist, clearly reflect them in the cooking actions.
+- Do not mention that you are an AI.
+- Focus on controlling the cooking process (heat, timing, movement),
+  not describing the final dish.
+- Avoid explaining results (e.g., "this gives juicy texture").
+  Instead, only describe actions (what to do next).  
+
+VERY IMPORTANT:
+Avoid polished AI writing style. Sound human.
 
 Question: ${question}
 `;
