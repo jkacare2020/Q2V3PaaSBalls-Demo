@@ -1,5 +1,12 @@
 <template>
   <q-page class="constrain q-pa-md">
+    <q-btn
+      flat
+      icon="arrow_forward"
+      label="Go to Expert Demo"
+      @click="$router.push('/expert-persona-demo')"
+    />
+
     <!-- left side post video box -->
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-sm-8">
