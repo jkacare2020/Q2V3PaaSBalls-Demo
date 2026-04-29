@@ -1,3 +1,11 @@
+## 🚀 Live Demo
+
+👉 https://q2v3backup.web.app/#/expert-persona-v4-demo
+
+## 📦 Latest Release
+
+👉 https://github.com/jkacare2020/Q2V3PaaSBalls-Demo/releases/tag/v0.4-persona-engine
+
 # 🧠 Ismehr – Multi-Perspective Persona Engine
 
 AI that helps you think through decisions using different perspectives.
