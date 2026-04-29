@@ -129,43 +129,86 @@
         <div class="text-subtitle1 text-weight-bold">Decision Compare</div>
       </div>
 
-      <div class="text-body2 text-grey-8 q-mb-md">
-        After the three perspectives respond, this area helps the user compare
-        values, trade-offs, risks, and long-term consequences.
+      <!-- 🔥 动态 summary -->
+      <q-banner
+        v-if="compareResult"
+        rounded
+        class="bg-grey-2 text-dark q-mb-md"
+      >
+        <div class="text-caption text-grey-7">Decision Insight</div>
+        <div class="text-body1 text-weight-medium">
+          {{ compareResult.summary }}
+        </div>
+      </q-banner>
+      <div v-if="compareResult">
+        <!-- <q-banner rounded class="bg-info text-white q-mb-md">
+          {{ compareResult.summary }}
+        </q-banner> -->
+
+        <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-4">
+            <q-card flat class="mini-card">
+              <div class="text-caption text-grey-7">Grandfather Value</div>
+              <div class="text-body2 text-weight-medium">
+                {{ compareResult.values?.grandfather }}
+              </div>
+            </q-card>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <q-card flat class="mini-card">
+              <div class="text-caption text-grey-7">Grandmother Value</div>
+              <div class="text-body2 text-weight-medium">
+                {{ compareResult.values?.grandmother }}
+              </div>
+            </q-card>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <q-card flat class="mini-card">
+              <div class="text-caption text-grey-7">Modern Value</div>
+              <div class="text-body2 text-weight-medium">
+                {{ compareResult.values?.modern }}
+              </div>
+            </q-card>
+          </div>
+        </div>
+
+        <q-separator class="q-my-md" />
+
+        <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-4">
+            <q-card flat class="mini-card">
+              <div class="text-caption text-grey-7">Trade-off</div>
+              <div class="text-body2">
+                {{ compareResult.tradeOff }}
+              </div>
+            </q-card>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <q-card flat class="mini-card">
+              <div class="text-caption text-grey-7">Risks</div>
+              <div class="text-body2">
+                {{ compareResult.risks }}
+              </div>
+            </q-card>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <q-card flat class="mini-card">
+              <div class="text-caption text-grey-7">Long-term Consequences</div>
+              <div class="text-body2">
+                {{ compareResult.longTerm }}
+              </div>
+            </q-card>
+          </div>
+        </div>
       </div>
 
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-3">
-          <q-card flat class="mini-card">
-            <div class="text-caption text-grey-7">Stability</div>
-            <div class="text-body2 text-weight-medium">What feels safe?</div>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-md-3">
-          <q-card flat class="mini-card">
-            <div class="text-caption text-grey-7">Family Impact</div>
-            <div class="text-body2 text-weight-medium">Who is affected?</div>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-md-3">
-          <q-card flat class="mini-card">
-            <div class="text-caption text-grey-7">Growth</div>
-            <div class="text-body2 text-weight-medium">
-              What opportunity opens?
-            </div>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-md-3">
-          <q-card flat class="mini-card">
-            <div class="text-caption text-grey-7">Risk</div>
-            <div class="text-body2 text-weight-medium">
-              What could go wrong?
-            </div>
-          </q-card>
-        </div>
+      <div v-else class="text-body2 text-grey-8">
+        After the three perspectives respond, this area will summarize values,
+        trade-offs, risks, and long-term consequences.
       </div>
     </q-card>
   </q-page>
@@ -176,6 +219,7 @@ import { ref } from "vue";
 import { apiNode } from "boot/apiNode";
 
 const loading = ref(false);
+const compareResult = ref(null);
 
 const userQuestion = ref(
   "Should I move to another city for a better job opportunity?",
@@ -220,53 +264,53 @@ function useExample() {
 }
 
 async function runDemo() {
+  console.log("🔥 runDemo clicked");
+
   if (!userQuestion.value.trim()) return;
+
+  compareResult.value = null;
 
   personas.value.forEach((p) => {
     p.answer = "";
     p.loading = true;
   });
 
-  // ✅ 不 await Promise.all
-  personas.value.forEach(async (persona) => {
-    try {
-      const prompt = `
-Persona:
-${persona.style}
+  try {
+    const { data } = await apiNode.post("/api/expert-persona/multi", {
+      userQuestion: userQuestion.value,
+    });
 
-User question:
-${userQuestion.value}
+    console.log("✅ multi response:", data);
 
-Rules:
-- Respond as this persona.
-- Do not give a harsh command.
-- Give caring guidance.
-- Ask one thoughtful follow-up question.
-- Show at least two trade-offs.
-- Keep the answer concise and practical.
-`;
+    const responseMap = data.responses || {};
 
-      const { data } = await apiNode.post("/api/expert-persona/demo", {
-        persona: persona.name,
-        prompt,
-        userQuestion: userQuestion.value,
-      });
+    personas.value.forEach((p) => {
+      if (p.key === "great_grandfather") {
+        p.answer = responseMap.grandfather || "";
+      }
 
-      // ✅ 谁先返回，谁先显示
-      persona.answer =
-        data.answer ||
-        data.reply ||
-        data.message ||
-        JSON.stringify(data, null, 2);
-    } catch (err) {
-      console.error(`${persona.name} error:`, err);
+      if (p.key === "great_grandmother") {
+        p.answer = responseMap.grandmother || "";
+      }
 
-      persona.answer = `Error: ${persona.name} could not respond.`;
-    } finally {
-      // ✅ 这个 persona 单独停止 loading
-      persona.loading = false;
-    }
-  });
+      if (p.key === "modern_expert") {
+        p.answer = responseMap.modern || "";
+      }
+
+      p.loading = false;
+    });
+
+    compareResult.value = data.compare || null;
+  } catch (err) {
+    console.error("v0.5 multi persona error:", err);
+
+    personas.value.forEach((p) => {
+      p.loading = false;
+    });
+
+    personas.value[0].answer =
+      "Error calling /api/expert-persona/multi. Check backend.";
+  }
 }
 </script>
 

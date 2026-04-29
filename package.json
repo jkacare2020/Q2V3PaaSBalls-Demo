@@ -17,7 +17,10 @@
     "build:ios": "quasar build -m capacitor -T ios --ide",
     "build:android": "quasar build -m capacitor -T android --ide",
     "build-deploy": "quasar build -m pwa && firebase deploy --only hosting",
-    "deploy-backend": "git subtree split --prefix backend -b heroku-deploy && git push heroku heroku-deploy:main --force"
+    "deploy-backend": "git subtree split --prefix backend -b heroku-deploy && git push heroku heroku-deploy:main --force",
+    "scripts": {
+      "deploy-all": "npm run deploy-backend && quasar build && firebase deploy --only hosting"
+    }
   },
   "dependencies": {
     "@capacitor/dialog": "^6.0.0",

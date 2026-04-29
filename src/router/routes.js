@@ -461,6 +461,12 @@ const routes = [
         component: () => import("pages/PageExpertPersonaV4Demo.vue"),
         meta: { requiresAuth: true },
       },
+
+      {
+        path: "persona-history",
+        component: () => import("pages/PagePersonaHistory.vue"),
+        meta: { requiresAuth: true },
+      },
     ],
   },
 
