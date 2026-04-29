@@ -189,16 +189,16 @@
             class="text-white"
           />
         </div>
-
         <div class="text-caption">
           🧠 Powered by
           <a
             href="https://www.ismehr.com"
             target="_blank"
             class="text-blue-4 text-weight-medium"
-            >Ismehr</a
           >
-          – AI Leather Cleaning Evaluation
+            Ismehr
+          </a>
+          <span class="text-grey-5"> – Multi-Perspective Persona Engine </span>
         </div>
 
         <q-btn
@@ -305,7 +305,7 @@ watch(
       await loadAvatar(newUser.uid);
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // Auto-redirect based on pending invite status
@@ -317,7 +317,7 @@ watch(
       router.push("/pending-invite");
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 // Extra safety: Try load on mount too
 onMounted(async () => {
@@ -568,7 +568,7 @@ async function logout() {
         headers: {
           Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
         },
-      }
+      },
     );
     console.log("✅ Comments marked offline");
   } catch (err) {
@@ -689,7 +689,7 @@ onMounted(() => {
 
 const canGoBack = computed(() => currentIndex.value > 0);
 const canGoForward = computed(
-  () => currentIndex.value < historyStack.value.length - 1
+  () => currentIndex.value < historyStack.value.length - 1,
 );
 
 const goBack = () => {

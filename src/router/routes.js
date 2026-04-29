@@ -455,6 +455,12 @@ const routes = [
         path: "/for-cleaners",
         component: () => import("pages/PageForCleaners.vue"),
       },
+
+      {
+        path: "expert-persona-v4-demo",
+        component: () => import("pages/PageExpertPersonaV4Demo.vue"),
+        meta: { requiresAuth: true },
+      },
     ],
   },
 

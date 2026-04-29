@@ -83,6 +83,12 @@
         @click="$router.push('/expert-persona-demo')"
       />
       <q-btn
+        color="info"
+        icon="groups"
+        label="Try v0.4 Multi-Persona Demo"
+        @click="$router.push('/expert-persona-v4-demo')"
+      />
+      <q-btn
         color="primary"
         label="Chat with AI Assistant"
         icon="smart_toy"
