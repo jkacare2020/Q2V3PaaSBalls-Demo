@@ -4,6 +4,8 @@ const router = express.Router();
 const admin = require("firebase-admin");
 const VideoAnalysis = require("../models/VideoAnalysis/videoAnalysisModel");
 
+const { getCookingPersona } = require("../utils/personaUtils");
+
 const dbFirestore = admin.firestore();
 
 router.post("/from-video/:videoId", async (req, res) => {
@@ -158,19 +160,36 @@ router.get("/expert/:expertId/observed-persona", async (req, res) => {
       }
     }
 
+    const averageHeat = totalHeat / count;
+    const averageSpeed = totalSpeed / count;
+    const averageComplexity = totalComplexity / count;
+    // 👇 加在这里
+    const ingredientType =
+      videos[0].extractedSignals?.ingredientType || "unknown";
+
+    const persona = getCookingPersona({
+      ingredientType,
+      heat: averageHeat,
+      speed: averageSpeed,
+      complexity: averageComplexity,
+      technique: dominantTechnique,
+    });
+
     const result = {
       expertId,
       expertName: videos[0].expertName,
       videoCount: count,
       observedStyle: {
-        averageHeat: totalHeat / count,
-        averageSpeed: totalSpeed / count,
-        averageComplexity: totalComplexity / count,
+        averageHeat,
+        averageSpeed,
+        averageComplexity,
         dominantTechnique,
+        styleTitle: persona.title,
+        styleTags: persona.tags,
+        philosophy: persona.philosophy,
       },
-      summary: `This chef tends to cook with ${dominantTechnique}, high heat and fast speed.`,
+      summary: `${persona.title}: ${persona.philosophy}`,
     };
-
     res.json(result);
   } catch (err) {
     console.error("observed persona error:", err);
