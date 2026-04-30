@@ -83,12 +83,38 @@ router.put("/:id/mock-analyze", async (req, res) => {
       linkedPersonaId,
     } = req.body || {};
 
+    const existing = await VideoAnalysis.findById(id);
+
+    if (!existing) {
+      return res.status(404).json({ error: "VideoAnalysis not found" });
+    }
+
+    const mergedSignals = {
+      ...(existing.extractedSignals || {}),
+      ...(extractedSignals || {}),
+    };
+
+    const text = `${existing.title || ""} ${existing.caption || ""} ${
+      transcript || ""
+    }`.toLowerCase();
+
+    if (!mergedSignals.ingredientType) {
+      if (text.includes("beef")) mergedSignals.ingredientType = "beef";
+      else if (text.includes("chicken"))
+        mergedSignals.ingredientType = "chicken";
+      else if (text.includes("vegetable") || text.includes("veggie")) {
+        mergedSignals.ingredientType = "vegetable";
+      } else {
+        mergedSignals.ingredientType = "unknown";
+      }
+    }
+
     const updated = await VideoAnalysis.findByIdAndUpdate(
       id,
       {
         transcript: transcript || "",
         processSteps: processSteps || [],
-        extractedSignals: extractedSignals || {},
+        extractedSignals: mergedSignals,
         consistencyScore:
           typeof consistencyScore === "number" ? consistencyScore : null,
         linkedPersonaId: linkedPersonaId || null,
@@ -96,10 +122,6 @@ router.put("/:id/mock-analyze", async (req, res) => {
       },
       { new: true },
     );
-
-    if (!updated) {
-      return res.status(404).json({ error: "VideoAnalysis not found" });
-    }
 
     res.json(updated);
   } catch (err) {
@@ -240,5 +262,23 @@ router.post("/dev/from-video/:videoId", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const deleted = await VideoAnalysis.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: "VideoAnalysis not found" });
+    }
+
+    res.json({
+      message: "Deleted successfully",
+      id,
+    });
+  } catch (err) {
+    console.error("delete video analysis error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
