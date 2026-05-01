@@ -41,7 +41,12 @@ const getCookingPersona = ({
 
   return {
     title: "General Stir-Fry Cook",
-    tags: [technique, `${getLevel(heat)} heat`, `${getLevel(speed)} speed`],
+    tags: [
+      technique,
+      `${getLevel(heat)} heat`,
+      `${getLevel(speed)} speed`,
+      `${getLevel(complexity)} complexity`,
+    ],
     philosophy: "I cook by watching heat, timing, color, and texture.",
   };
 };
