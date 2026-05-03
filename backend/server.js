@@ -39,6 +39,8 @@ const videoAnalysisRoutes = require("./routes/videoAnalysisRoutes");
 
 const expertPersonaRoutes = require("./routes/expertPersonaRoutes");
 
+const personaV06Routes = require("./routes/personaV06Routes");
+
 dotenv.config();
 
 // Connect to MongoDB
@@ -112,6 +114,7 @@ app.use("/api/try-log", tryLogRoutes);
 app.use("/api/expert", expertRoutes);
 // 🔐 Global Firebase Auth Middleware (protect everything below)
 //const videoAnalysisRoutes = require("./routes/videoAnalysisRoutes");
+app.use("/api/persona-v06", personaV06Routes);
 app.use("/api/expert-persona", expertPersonaRoutes);
 app.use("/api/video-analysis", videoAnalysisRoutes);
 app.use("/api", authenticateAndAuthorize());
