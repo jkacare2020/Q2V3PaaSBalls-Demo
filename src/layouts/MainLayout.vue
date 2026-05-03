@@ -352,6 +352,11 @@ const navLinks = [
         icon: "lock",
         link: "/private-posts",
       },
+      {
+        title: "V06 Persona",
+        icon: "psychology",
+        link: "/expert-persona-v06",
+      },
     ],
   },
 
